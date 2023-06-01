@@ -1,27 +1,28 @@
-#define right_1 A0
+#define right_1 A2
+#define center_1 A1
 // #define right_2 A1
 // #define right_3 A6
 // #define right_4 A2
-#define left_1 A3
+#define left_1 A0
 // #define left_2 A4
 // #define left_3 A7
 // #define left_4 A5
 #define built_in 13
-#define motor_right_forward 5
-#define motor_right_backward 3
+#define motor_right_forward 3
+#define motor_right_backward 5
 #define motor_left_forward 6
 #define motor_left_backward 9
-int l1, r1;
+int c1, l1, r1;
 
-// 0 -> left , 1 -> right
-int minValues[2], maxValues[2], threshold[2];
+// 0 -> left , 1 -> right, 3 -> center
+int minValues[3], maxValues[3], threshold[3];
 
 int P, D, I, previousError = 0, PIDvalue, error;
 int lsp, rsp;
-int lfspeed = 175;
+int lfspeed = 125;
 
-float Kp = 25;
-float Kd = 10;
+float Kp = 2;
+float Kd = 0.55;
 float Ki = 0;
 
 int time_global;
@@ -36,19 +37,35 @@ void setup() {
   time_global = millis();
   delay(3000);
   blink_it(4, 200);
-  calibrate(5000);
-  delay(5000);
+  calibrate(4000);
+  delay(2000);
   blink_it(4, 500);
 }
 
 void loop() {
   l1 = analogRead(left_1);
+  c1 = analogRead(center_1);
   r1 = analogRead(right_1);
 
-  error = (r1 > threshold[1]) * 2 - (l1 > threshold[0]) * 2;
+  // if (c1 < threshold[2]) {
+  //   if (r1 > threshold[1]) {
+  //     motor_control(125, 175);
+  //   } else if (l1 > threshold[0]) {
+  //     motor_control(175, 125);
+  //   } else {
+  //     motor_control(75, 75);
+  //   }
+  // } else {
+
+  // if (l1 > threshold[0])
+  error = r1 - l1 * 1.2;
+  // else
+  // error = r1 - l1;
   P = error;
   I = I + error;
   D = error - previousError;
+  Kp = 0.015 * (1000 - c1);
+  Kd = 20 * Kp;
 
   PIDvalue = (Kp * P) + (Kd * D) + (Ki * I);
   previousError = error;
@@ -70,6 +87,7 @@ void loop() {
   }
 
   motor_control(lsp, rsp);
+  // }
   // derivative = derivative - error * time;
   // integral = integral + error * time;
 
@@ -107,7 +125,7 @@ void blink_it(int num, int time) {
 }
 
 void calibrate(int time_calibrate) {
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 3; i++) {
     minValues[i] = INT32_MAX;
     maxValues[i] = INT32_MIN;
   }
@@ -118,17 +136,22 @@ void calibrate(int time_calibrate) {
   do {
     r1 = analogRead(right_1);
     l1 = analogRead(left_1);
+    c1 = analogRead(center_1);
     minValues[0] = min(minValues[0], l1);
     minValues[1] = min(minValues[1], r1);
+    minValues[2] = min(minValues[2], c1);
+
 
     maxValues[0] = max(maxValues[0], l1);
     maxValues[1] = max(maxValues[1], r1);
+    maxValues[2] = max(maxValues[2], c1);
+
     elapsed_time = millis() - local_time;
   } while (elapsed_time < time_calibrate);
 
   motor_control(0, 0);
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 3; i++) {
     threshold[i] = (minValues[i] + maxValues[i]) / 2;
   }
 }
