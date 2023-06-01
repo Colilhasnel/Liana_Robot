@@ -15,14 +15,14 @@
 int c1, l1, r1;
 
 // 0 -> left , 1 -> right, 3 -> center
-int minValues[3], maxValues[3], threshold[3];
+int minValues[3], maxValues[3];
 
 int P, D, I, previousError = 0, PIDvalue, error;
 int lsp, rsp;
-int lfspeed = 125;
+int lfspeed = 175;
 
 float Kp = 2;
-float Kd = 0.55;
+float Kd = 0;
 float Ki = 0;
 
 int time_global;
@@ -47,56 +47,51 @@ void loop() {
   c1 = analogRead(center_1);
   r1 = analogRead(right_1);
 
-  // if (c1 < threshold[2]) {
-  //   if (r1 > threshold[1]) {
-  //     motor_control(125, 175);
-  //   } else if (l1 > threshold[0]) {
-  //     motor_control(175, 125);
-  //   } else {
-  //     motor_control(75, 75);
-  //   }
-  // } else {
+  l1 = (1023 * (l1 - minValues[0])) / (maxValues[0] - minValues[0]);
+  r1 = (1023 * (r1 - minValues[1])) / (maxValues[1] - minValues[1]);
+  c1 = (1023 * (c1 - minValues[2])) / (maxValues[2] - minValues[2]);
 
-  // if (l1 > threshold[0])
-  error = r1 - l1 * 1.2;
-  // else
-  // error = r1 - l1;
-  P = error;
-  I = I + error;
-  D = error - previousError;
-  Kp = 0.015 * (1000 - c1);
-  Kd = 20 * Kp;
-
-  PIDvalue = (Kp * P) + (Kd * D) + (Ki * I);
-  previousError = error;
-
-  lsp = lfspeed - PIDvalue;
-  rsp = lfspeed + PIDvalue;
-
-  if (lsp > 255) {
-    lsp = 255;
+  while (c1 > 512) {
+    motor_control(-125, -125);
   }
-  if (lsp < 0) {
-    lsp = 0;
-  }
-  if (rsp > 255) {
-    rsp = 255;
-  }
-  if (rsp < 0) {
-    rsp = 0;
-  }
+  while (c1 <= 512) {
 
-  motor_control(lsp, rsp);
-  // }
-  // derivative = derivative - error * time;
-  // integral = integral + error * time;
+    error = l1 - r1;
+    P = error;
+    I = I + error;
+    D = error - previousError;
 
-  // output = kp * error + ki * integral + kd * derivative;
+    PIDvalue = (Kp * P) + (Kd * D) + (Ki * I);
+    previousError = error;
 
-  // if (output < 0)
-  //   analogWrite(motor_left_forward, min((-1) * output, 225));
-  // else
-  //   analogWrite(motor_right_forward, min(225, output));
+    lsp = lfspeed - PIDvalue;
+    rsp = lfspeed + PIDvalue;
+
+    if (lsp > 255) {
+      lsp = 255;
+    }
+    if (lsp < 0) {
+      lsp = 0;
+    }
+    if (rsp > 255) {
+      rsp = 255;
+    }
+    if (rsp < 0) {
+      rsp = 0;
+    }
+
+    motor_control(lsp, rsp);
+    // }
+    // derivative = derivative - error * time;
+    // integral = integral + error * time;
+
+    // output = kp * error + ki * integral + kd * derivative;
+
+    // if (output < 0)
+    //   analogWrite(motor_left_forward, min((-1) * output, 225));
+    // else
+    //   analogWrite(motor_right_forward, min(225, output));
+  }
 }
 
 void motor_control(int left, int right) {
@@ -150,8 +145,4 @@ void calibrate(int time_calibrate) {
   } while (elapsed_time < time_calibrate);
 
   motor_control(0, 0);
-
-  for (int i = 0; i < 3; i++) {
-    threshold[i] = (minValues[i] + maxValues[i]) / 2;
-  }
 }
